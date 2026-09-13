@@ -1,0 +1,5 @@
+CBP unit BDD scenarios first failed because `live_here.factors.cbp` did not
+exist. The real-data acceptance scenario then failed until the official 2023
+CBP county archive was downloaded. The parser, same-year Census PEP denominator
+join, density export, and acceptance checks are now green. No old or mismatched
+population estimate is substituted.

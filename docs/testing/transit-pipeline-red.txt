@@ -1,0 +1,19 @@
+test_given_transit_export_when_pipeline_runs_then_transit_is_ranked_and_missing_is_retained (tests.test_transit_pipeline_bdd.TransitPipelineBDD.test_given_transit_export_when_pipeline_runs_then_transit_is_ranked_and_missing_is_retained) ... ERROR
+
+======================================================================
+ERROR: test_given_transit_export_when_pipeline_runs_then_transit_is_ranked_and_missing_is_retained (tests.test_transit_pipeline_bdd.TransitPipelineBDD.test_given_transit_export_when_pipeline_runs_then_transit_is_ranked_and_missing_is_retained)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mbecker/git/live_here/tests/test_transit_pipeline_bdd.py", line 37, in test_given_transit_export_when_pipeline_runs_then_transit_is_ranked_and_missing_is_retained
+    coverage = run(config_path, root / "out")
+  File "/Users/mbecker/git/live_here/src/live_here/pipeline.py", line 76, in run
+    config, sources = read_config(config_path)
+                      ~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/mbecker/git/live_here/src/live_here/pipeline.py", line 48, in read_config
+    raise ValueError(f"Factors awaiting implementation: {sorted(unsupported)}")
+ValueError: Factors awaiting implementation: ['transit']
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (errors=1)

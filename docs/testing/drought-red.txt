@@ -1,0 +1,96 @@
+test_drought_bdd (unittest.loader._FailedTest.test_drought_bdd) ... ERROR
+
+======================================================================
+ERROR: test_drought_bdd (unittest.loader._FailedTest.test_drought_bdd)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_drought_bdd
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.0_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+  File "/Users/mbecker/git/live_here/tests/test_drought_bdd.py", line 6, in <module>
+    from live_here.factors.drought import (
+    ...<3 lines>...
+    )
+ModuleNotFoundError: No module named 'live_here.factors.drought'
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)
+test_drought_bdd (unittest.loader._FailedTest.test_drought_bdd) ... ERROR
+test_given_a_source_only_drought_adapter_when_pipeline_capabilities_are_checked_then_drought_is_supported (tests.test_drought_pipeline_bdd.DroughtPipelineBDD.test_given_a_source_only_drought_adapter_when_pipeline_capabilities_are_checked_then_drought_is_supported) ... FAIL
+
+======================================================================
+ERROR: test_drought_bdd (unittest.loader._FailedTest.test_drought_bdd)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_drought_bdd
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.0_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+  File "/Users/mbecker/git/live_here/tests/test_drought_bdd.py", line 6, in <module>
+    from live_here.factors.drought import (
+    ...<3 lines>...
+    )
+ModuleNotFoundError: No module named 'live_here.factors.drought'
+
+
+======================================================================
+FAIL: test_given_a_source_only_drought_adapter_when_pipeline_capabilities_are_checked_then_drought_is_supported (tests.test_drought_pipeline_bdd.DroughtPipelineBDD.test_given_a_source_only_drought_adapter_when_pipeline_capabilities_are_checked_then_drought_is_supported)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mbecker/git/live_here/tests/test_drought_pipeline_bdd.py", line 8, in test_given_a_source_only_drought_adapter_when_pipeline_capabilities_are_checked_then_drought_is_supported
+    self.assertIn("drought", SUPPORTED)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'drought' not found in {'walkability', 'heat', 'groceries', 'aqi', 'resilience', 'cold', 'tradespeople', 'snowfall', 'hazard_burden'}
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+FAILED (failures=1, errors=1)
+test_given_a_censored_or_missing_drought_value_when_converted_then_it_remains_missing (tests.test_drought_bdd.DroughtFactorBDD.test_given_a_censored_or_missing_drought_value_when_converted_then_it_remains_missing) ... ok
+test_given_a_small_official_style_csv_when_read_then_rows_and_audit_are_returned (tests.test_drought_bdd.DroughtFactorBDD.test_given_a_small_official_style_csv_when_read_then_rows_and_audit_are_returned) ... ok
+test_given_a_source_row_when_normalized_then_fips_stays_a_five_digit_string (tests.test_drought_bdd.DroughtFactorBDD.test_given_a_source_row_when_normalized_then_fips_stays_a_five_digit_string) ... ok
+test_given_observed_d1_plus_weeks_and_a_ten_year_window_when_converted_then_days_are_annualized (tests.test_drought_bdd.DroughtFactorBDD.test_given_observed_d1_plus_weeks_and_a_ten_year_window_when_converted_then_days_are_annualized) ... ok
+test_given_a_source_only_drought_adapter_when_pipeline_capabilities_are_checked_then_drought_is_supported (tests.test_drought_pipeline_bdd.DroughtPipelineBDD.test_given_a_source_only_drought_adapter_when_pipeline_capabilities_are_checked_then_drought_is_supported) ... ok
+test_given_current_config_when_read_then_drought_factor_is_selected (tests.acceptance.test_drought_real_bdd.DroughtRealDataBDD.test_given_current_config_when_read_then_drought_factor_is_selected) ... FAIL
+test_given_real_usdm_rows_when_prepared_then_source_only_drought_export_has_national_coverage (tests.acceptance.test_drought_real_bdd.DroughtRealDataBDD.test_given_real_usdm_rows_when_prepared_then_source_only_drought_export_has_national_coverage) ... ERROR
+test_given_the_official_usdm_download_when_acquisition_finishes_then_receipt_and_many_rows_exist (tests.acceptance.test_drought_real_bdd.DroughtRealDataBDD.test_given_the_official_usdm_download_when_acquisition_finishes_then_receipt_and_many_rows_exist) ... FAIL
+
+======================================================================
+ERROR: test_given_real_usdm_rows_when_prepared_then_source_only_drought_export_has_national_coverage (tests.acceptance.test_drought_real_bdd.DroughtRealDataBDD.test_given_real_usdm_rows_when_prepared_then_source_only_drought_export_has_national_coverage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mbecker/git/live_here/tests/acceptance/test_drought_real_bdd.py", line 20, in test_given_real_usdm_rows_when_prepared_then_source_only_drought_export_has_national_coverage
+    audit = json.loads((ROOT / "data/interim/current/drought-audit.json").read_text())
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.0_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 792, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.0_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/mbecker/git/live_here/data/interim/current/drought-audit.json'
+
+======================================================================
+FAIL: test_given_current_config_when_read_then_drought_factor_is_selected (tests.acceptance.test_drought_real_bdd.DroughtRealDataBDD.test_given_current_config_when_read_then_drought_factor_is_selected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mbecker/git/live_here/tests/acceptance/test_drought_real_bdd.py", line 27, in test_given_current_config_when_read_then_drought_factor_is_selected
+    self.assertIn("drought", config["factors"])
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'drought' not found in ['aqi', 'walkability', 'heat', 'cold', 'snowfall', 'tradespeople', 'groceries', 'hazard_burden', 'resilience']
+
+======================================================================
+FAIL: test_given_the_official_usdm_download_when_acquisition_finishes_then_receipt_and_many_rows_exist (tests.acceptance.test_drought_real_bdd.DroughtRealDataBDD.test_given_the_official_usdm_download_when_acquisition_finishes_then_receipt_and_many_rows_exist)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mbecker/git/live_here/tests/acceptance/test_drought_real_bdd.py", line 13, in test_given_the_official_usdm_download_when_acquisition_finishes_then_receipt_and_many_rows_exist
+    self.assertTrue(raw.is_file())
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.001s
+
+FAILED (failures=2, errors=1)

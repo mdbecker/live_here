@@ -1,0 +1,14 @@
+2026-09-13 FEMA NRI BDD red phase
+
+Command:
+  PYTHONPATH=src .venv/bin/python -m unittest tests.test_fema_bdd -v
+
+Result: failed during test collection with ModuleNotFoundError:
+  No module named 'live_here.factors.fema'
+
+The failure is intentional. No FEMA implementation or downloaded FEMA source was
+present when these scenarios were written.
+
+After the source-composite unit scenarios were made executable, the pipeline
+scenario remained red as expected:
+  ValueError: Factors awaiting implementation: ['hazard_burden', 'resilience']

@@ -1,0 +1,9 @@
+2026-09-13T00:00:00Z
+Normalized-factor geography audit BDD red phase, before implementation
+
+$ PYTHONPATH=src .venv/bin/python -m unittest tests.test_grocery_pipeline_bdd.GroceryPipelineBehaviors.test_given_normalized_rows_outside_target_geography_when_read_then_their_fips_are_audited -v
+
+KeyError: 'outside_universe_fips'
+
+The pre-change normalized-factor reader silently skipped source rows outside the
+pinned county universe.

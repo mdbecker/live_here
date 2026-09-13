@@ -1,0 +1,24 @@
+test_given_cached_download_when_repeated_then_network_is_not_used (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_cached_download_when_repeated_then_network_is_not_used) ... ok
+test_given_census_gazetteer_when_normalized_then_all_source_counties_are_preserved (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_census_gazetteer_when_normalized_then_all_source_counties_are_preserved) ... ok
+test_given_county_and_independent_city_when_names_match_then_never_conflate (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_county_and_independent_city_when_names_match_then_never_conflate) ... ok
+test_given_downloaded_source_files_when_prepared_then_pipeline_reads_only_hashed_source_exports (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_downloaded_source_files_when_prepared_then_pipeline_reads_only_hashed_source_exports) ... ERROR
+test_given_failed_download_when_fetch_raises_then_no_source_is_registered (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_failed_download_when_fetch_raises_then_no_source_is_registered) ... ok
+test_given_generic_geoid_export_when_adapter_runs_then_source_vintage_is_not_relabelled (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_generic_geoid_export_when_adapter_runs_then_source_vintage_is_not_relabelled) ... ok
+test_given_numeric_epa_ids_when_normalized_then_leading_zeros_survive (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_numeric_epa_ids_when_normalized_then_leading_zeros_survive) ... ok
+test_given_remote_bytes_when_downloaded_then_hash_and_origin_are_saved (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_remote_bytes_when_downloaded_then_hash_and_origin_are_saved) ... ok
+test_given_unknown_aqi_name_when_mapping_then_report_it_without_guessing (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_unknown_aqi_name_when_mapping_then_report_it_without_guessing) ... ok
+test_given_updated_epa_geoid_when_exported_then_use_generic_identifier_without_claiming_2010 (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_updated_epa_geoid_when_exported_then_use_generic_identifier_without_claiming_2010) ... ok
+
+======================================================================
+ERROR: test_given_downloaded_source_files_when_prepared_then_pipeline_reads_only_hashed_source_exports (test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_downloaded_source_files_when_prepared_then_pipeline_reads_only_hashed_source_exports)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mbecker/git/live_here/tests/test_acquisition_bdd.py", line 111, in test_given_downloaded_source_files_when_prepared_then_pipeline_reads_only_hashed_source_exports
+    api.prepare_current(root, files, receipts)
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'live_here.acquire' has no attribute 'prepare_current'
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.015s
+
+FAILED (errors=1)

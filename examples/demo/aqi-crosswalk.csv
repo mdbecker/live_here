@@ -1,0 +1,3 @@
+State,County,fips,geography_vintage
+Example State,North,01001,fixture-2020
+Example State,South,01003,fixture-2020

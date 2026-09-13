@@ -1,0 +1,44 @@
+[
+  {
+    "name": "added_candidate_sourcefix_rollup.csv",
+    "path": "research/legacy/added_candidate_sourcefix_rollup.csv",
+    "bytes": 47667,
+    "sha256": "08e66106c43d137caf84e4919630023a5325a81b7da170a4b0ce3c3a3afae976",
+    "role": "historical_reference_only"
+  },
+  {
+    "name": "county_rankings_added_candidates_sourcefix_100k(1).xlsx",
+    "path": "research/legacy/county_rankings_added_candidates_sourcefix_100k(1).xlsx",
+    "bytes": 1647460,
+    "sha256": "2b8a778063d4e571864937874de976362a78aa5dfb88a0f4b730a0b8b4612c35",
+    "role": "historical_reference_only"
+  },
+  {
+    "name": "county_rankings_full_data_reuse_100k(1).xlsx",
+    "path": "research/legacy/county_rankings_full_data_reuse_100k(1).xlsx",
+    "bytes": 1636223,
+    "sha256": "477d8f000c21df74c2af72f824b4c7580b1cce02c41496e4b7c599e64e529ecd",
+    "role": "historical_reference_only"
+  },
+  {
+    "name": "county_rankings_with_preserved_woodland_estimate.xlsx",
+    "path": "research/legacy/county_rankings_with_preserved_woodland_estimate.xlsx",
+    "bytes": 1708369,
+    "sha256": "a4cc8fcdb77ef5252d68a8ccf468c344551d584bd079485d7e0c6beee340a48d",
+    "role": "historical_reference_only"
+  },
+  {
+    "name": "update_aqi_and_rerun_mcmc(1).py",
+    "path": "research/legacy/update_aqi_and_rerun_mcmc(1).py",
+    "bytes": 41338,
+    "sha256": "8aed02239ef4202ea13ae6095acbf11eb1705d1dd121afc15677520b488ed500",
+    "role": "historical_reference_only"
+  },
+  {
+    "name": "update_walkability_and_rerun_mcmc(1).py",
+    "path": "research/legacy/update_walkability_and_rerun_mcmc(1).py",
+    "bytes": 32521,
+    "sha256": "810cdb39030c2afc3f3648b2b823eb76bdd5a186509a38b3f391768a3a78e13a",
+    "role": "historical_reference_only"
+  }
+]

@@ -1,0 +1,66 @@
+{
+  "mode": "demo",
+  "geography_source": "counties",
+  "factors": [
+    "aqi",
+    "walkability"
+  ],
+  "missing_policy": "complete_case",
+  "iterations": 1000,
+  "seed": 42,
+  "adapters": {
+    "aqi": {
+      "sources": [
+        "aqi"
+      ],
+      "crosswalk": "aqi_crosswalk"
+    },
+    "walkability": {
+      "sources": [
+        "walkability"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "counties",
+      "path": "counties.csv",
+      "sha256": "652fe3f66fef0c7a7541a6b4fa2a18502d45e4ecee64f60ff63ab20a602a264b",
+      "url": "synthetic://live-here-demo/counties.csv",
+      "vintage": "synthetic-2020",
+      "geography_vintage": "fixture-2020",
+      "role": "fixture",
+      "license": "Project-authored synthetic test data"
+    },
+    {
+      "id": "aqi_crosswalk",
+      "path": "aqi-crosswalk.csv",
+      "sha256": "dd0d862e368c28d28b6934576b6b16b3fde1e47859b3fb8ff6ac0a7a704cb9a4",
+      "url": "synthetic://live-here-demo/aqi-crosswalk.csv",
+      "vintage": "synthetic-2020",
+      "geography_vintage": "fixture-2020",
+      "role": "fixture",
+      "license": "Project-authored synthetic test data"
+    },
+    {
+      "id": "aqi",
+      "path": "aqi.csv",
+      "sha256": "dc5615839bb80f8b5a38f132f0ad244bb2ad0c4d4fa4ca7235289ed226ae70e9",
+      "url": "synthetic://live-here-demo/aqi.csv",
+      "vintage": "synthetic-2023-2024",
+      "geography_vintage": "fixture-2020",
+      "role": "fixture",
+      "license": "Project-authored synthetic test data"
+    },
+    {
+      "id": "walkability",
+      "path": "walkability.csv",
+      "sha256": "8d5efcfb58af599b94ed7f179b4d02e2a6ab7baca1a42b6e183bbfe2905635d1",
+      "url": "synthetic://live-here-demo/walkability.csv",
+      "vintage": "synthetic-2020",
+      "geography_vintage": "fixture-2020",
+      "role": "fixture",
+      "license": "Project-authored synthetic test data"
+    }
+  ]
+}

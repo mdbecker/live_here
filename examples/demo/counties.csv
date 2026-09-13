@@ -1,0 +1,4 @@
+fips,name,state,geography_vintage
+01001,Example North,AL,fixture-2020
+01003,Example South,AL,fixture-2020
+01005,Example Missing,AL,fixture-2020

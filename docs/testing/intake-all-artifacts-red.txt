@@ -1,0 +1,10 @@
+2026-09-13T00:00:00Z
+Complete incoming-artifact disposition BDD red phase, before implementation
+
+$ PYTHONPATH=src .venv/bin/python -m unittest tests.test_intake_bdd -v
+
+test_given_every_supplied_non_readme_artifact_when_inspected_then_each_has_an_explicit_disposition ... ERROR
+ValueError: Incoming file has not been reviewed: update_walkability_and_rerun_mcmc(1).py
+
+The pre-change classifier recognized only five handoff documents and had no
+executable disposition for the twenty other supplied artifacts.

@@ -1,0 +1,5 @@
+USDA unit BDD scenarios first failed because `live_here.factors.usda` did not
+exist. The pipeline scenario then failed because `groceries` was outside the
+implemented factor set. After the source parser, bounded access adjustment,
+pipeline adapter, official USDA archive, and CBP join were added, all unit and
+real-data acceptance scenarios became green.
