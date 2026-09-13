@@ -27,11 +27,15 @@ def listing_bytes(transport):
 
 
 def discover_sources(transport):
-    releases = discover_aqi_releases(listing_bytes(transport))
-    discovery = {"url": AQI_LISTING_URL, "retrieved_at": datetime.now(timezone.utc).isoformat(), "selected_releases": releases}
     path = ROOT / "data/raw/current/aqi-release-discovery.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(discovery, indent=2) + "\n")
+    if path.is_file():
+        discovery = json.loads(path.read_text())
+        releases = discovery["selected_releases"]
+    else:
+        releases = discover_aqi_releases(listing_bytes(transport))
+        discovery = {"url": AQI_LISTING_URL, "retrieved_at": datetime.now(timezone.utc).isoformat(), "selected_releases": releases}
+        path.write_text(json.dumps(discovery, indent=2) + "\n")
     return {**SOURCES, **{release["id"]: (release["filename"], release["url"]) for release in releases}}
 
 

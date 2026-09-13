@@ -26,7 +26,7 @@ class TransitRealDataBDD(unittest.TestCase):
 
     def test_given_current_real_run_when_transit_is_selected_then_missing_source_coverage_is_reported(self):
         # Given the source-only national run including the recovered V1 factors
-        coverage = json.loads((ROOT / "outputs/current-real-closure-final/coverage.json").read_text())
+        coverage = json.loads((ROOT / "outputs/coverage.json").read_text())
         # Then transit is selected and its incomplete source coverage remains visible
         self.assertIn("transit", coverage["selected_factors"])
         self.assertEqual(coverage["per_factor"]["transit"]["derived_source"], 530)

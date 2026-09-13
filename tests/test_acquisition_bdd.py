@@ -146,6 +146,32 @@ class SourceAcquisitionBehaviors(unittest.TestCase):
         self.assertEqual([release["year"] for release in releases], [2025, 2024])
         self.assertEqual(releases[0]["url"], "https://aqs.epa.gov/aqsweb/airdata/annual_aqi_by_county_2025.zip")
 
+    def test_given_cached_aqi_discovery_when_sources_are_discovered_then_network_listing_is_not_required(self):
+        """Given cached AQI discovery, when preparing sources, then offline reruns reuse it."""
+        gather = importlib.import_module("scripts.gather_current_data")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw = root / "data/raw/current"
+            raw.mkdir(parents=True)
+            cached = {
+                "url": gather.AQI_LISTING_URL,
+                "retrieved_at": "2026-09-13T00:00:00+00:00",
+                "selected_releases": [
+                    {"id": "aqi2025", "year": 2025, "filename": "annual_aqi_by_county_2025.zip", "url": "https://example.test/2025.zip"},
+                    {"id": "aqi2024", "year": 2024, "filename": "annual_aqi_by_county_2024.zip", "url": "https://example.test/2024.zip"},
+                ],
+            }
+            (raw / "aqi-release-discovery.json").write_text(json.dumps(cached), encoding="utf-8")
+            original_root, original_listing = gather.ROOT, gather.listing_bytes
+            try:
+                gather.ROOT = root
+                gather.listing_bytes = lambda transport: (_ for _ in ()).throw(AssertionError("network listing used"))
+                sources = gather.discover_sources("python")
+            finally:
+                gather.ROOT = original_root
+                gather.listing_bytes = original_listing
+        self.assertEqual(sources["aqi2025"], ("annual_aqi_by_county_2025.zip", "https://example.test/2025.zip"))
+
 
 if __name__ == "__main__":
     unittest.main()

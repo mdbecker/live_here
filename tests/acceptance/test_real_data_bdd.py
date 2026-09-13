@@ -28,7 +28,7 @@ class RealDataAcceptance(unittest.TestCase):
                 self.assertTrue(source.get("raw_parent_sha256"))
 
     def test_given_real_national_inputs_when_pipeline_runs_then_coverage_and_wins_reconcile(self):
-        folder = ROOT / "outputs/current-real-closure-final"
+        folder = ROOT / "outputs"
         self.assertTrue((folder / "coverage.json").is_file(), "No real-source pipeline run exists")
         coverage = json.loads((folder / "coverage.json").read_text())
         self.assertEqual(coverage["mode"], "research")

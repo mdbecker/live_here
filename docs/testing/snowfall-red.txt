@@ -1,7 +1,0 @@
-The snowfall unit and pipeline BDD scenarios were run before the NOAA
-multivariate adapter existed. The first run failed while importing
-`live_here.factors.snowfall`; the pipeline scenario then failed with
-`Factors awaiting implementation: ['snowfall']`. The real-data acceptance
-scenario failed because the official annual/seasonal archive was absent.
-The failures were resolved after the source parser, normalized export script,
-pipeline adapter, and official download were added.

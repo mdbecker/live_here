@@ -28,7 +28,7 @@ class FEMARealDataBDD(unittest.TestCase):
         self.assertIn("resilience", config["factors"])
 
     def test_given_twelve_factor_real_run_when_read_then_fema_factors_have_source_coverage(self):
-        coverage = json.loads((ROOT / "outputs/current-real-closure-final/coverage.json").read_text())
+        coverage = json.loads((ROOT / "outputs/coverage.json").read_text())
         self.assertIn("hazard_burden", coverage["selected_factors"])
         self.assertIn("resilience", coverage["selected_factors"])
         self.assertGreater(coverage["ranked_count"], 250)

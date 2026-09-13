@@ -1,6 +1,0 @@
-OEWS helper scenarios first failed because `live_here.factors.oews` did not
-exist. The XLSX parser and share calculations are now green. The real-data
-acceptance scenario was initially red because the BLS endpoints returned HTTP
-403; the official May 2025 archives were subsequently supplied in
-`data/incoming`. They are now copied with hashes, parsed, joined to CBP, and
-accepted in the six-factor real run.

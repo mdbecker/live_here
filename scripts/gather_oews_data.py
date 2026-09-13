@@ -2,10 +2,7 @@
 
 import argparse
 import csv
-import datetime
-import hashlib
 import json
-import shutil
 import tempfile
 import zipfile
 from collections import defaultdict
@@ -26,25 +23,6 @@ SOURCES = {
 WALKABILITY = "EPA_SmartLocationDatabase_V3_Jan_2021_Final.csv"
 CBP_PARENTS = ("cbp23co.zip", "co-est2023-alldata.csv")
 SELECTED = {"47-2111", "47-2152", "49-9021", "47-2181", "47-2031", "47-2141", "47-2061", "49-9041", "49-9071"}
-
-
-def _provided_source(root, filename):
-    """Return the immutable research archive, with old intake layout fallback."""
-    root = Path(root)
-    for candidate in (root / "research/legacy" / filename, root / "data/incoming" / filename):
-        if candidate.is_file():
-            return candidate
-    return None
-
-
-def _receipt_from_incoming(incoming, target, url):
-    shutil.copy2(incoming, target)
-    record = {"url": url, "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
-              "bytes": target.stat().st_size,
-              "retrieved_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-              "provided_in": str(incoming)}
-    target.with_suffix(target.suffix + ".source.json").write_text(json.dumps(record, indent=2) + "\n")
-    return record
 
 
 def _member_rows(archive_path, suffix):
@@ -88,8 +66,7 @@ def main():
     raw_dir = ROOT / "data/raw/current"; raw_dir.mkdir(parents=True, exist_ok=True)
     receipts = {}
     for key, (filename, url) in SOURCES.items():
-        provided, target = _provided_source(ROOT, filename), raw_dir / filename
-        receipts[key] = _receipt_from_incoming(provided, target, url) if provided and not target.exists() else download(url, target, fetch=fetch)
+        receipts[key] = download(url, raw_dir / filename, fetch=fetch)
     target = ROOT / "data/interim/current"; target.mkdir(parents=True, exist_ok=True)
 
     national_rows = []

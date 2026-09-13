@@ -10,9 +10,6 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
-[project.optional-dependencies]
-research = ["openpyxl>=3.1,<4"]
-
 [project.scripts]
 live-here = "live_here.cli:main"
 

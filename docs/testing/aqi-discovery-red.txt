@@ -1,6 +1,0 @@
-2026-09-13T00:00:00Z
-AQI latest-release discovery BDD red phase, before implementation
-
-$ PYTHONPATH=src .venv/bin/python -m unittest tests.test_acquisition_bdd.SourceAcquisitionBehaviors.test_given_epa_release_listing_when_discovered_then_latest_two_complete_years_are_selected -v
-
-AttributeError: module 'live_here.acquire' has no attribute 'discover_aqi_releases'

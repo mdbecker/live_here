@@ -18,7 +18,7 @@ class HousingRealDataBDD(unittest.TestCase):
         self.assertGreater(audit["matched_counties"], 2500)
 
     def test_given_current_real_run_when_housing_is_selected_then_dollar_values_remain_source_derived(self):
-        coverage = json.loads((ROOT / "outputs/current-real-closure-final/coverage.json").read_text())
+        coverage = json.loads((ROOT / "outputs/coverage.json").read_text())
         self.assertIn("housing", coverage["selected_factors"])
         self.assertGreater(coverage["per_factor"]["housing"].get("derived_source", 0), 2500)
 
