@@ -14,10 +14,10 @@ class HousingPipelineBehaviors(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             counties = root / "counties.csv"
-            counties.write_text("fips,name,state,geography_vintage\n01001,Alpha,AL,2019\n01003,Beta,AL,2019\n")
+            counties.write_text("fips,name,state,geography_vintage,latitude,longitude,coordinate_vintage\n01001,Alpha,AL,2019,0,0,2020\n01003,Beta,AL,2019,0,1,2020\n")
             source = root / "housing.csv"
             source.write_text("fips,value,value_status,method,observation_period,unit\n01001,100000,derived_source,Zillow county three-bedroom ZHVI,2025-02-28,USD\n01003,200000,derived_source,Zillow county three-bedroom ZHVI,2025-02-28,USD\n")
-            config = {"mode": "research", "geography_source": "counties", "factors": ["housing"], "missing_policy": "complete_case", "iterations": 10, "seed": 42,
+            config = {"mode": "research", "geography_source": "counties", "factors": ["housing"], "iterations": 10, "seed": 42,
                       "adapters": {"housing": {"sources": ["housing"]}}, "sources": [
                           {"id": "counties", "path": str(counties), "sha256": sha256(counties), "url": "fixture://counties", "vintage": "2019", "geography_vintage": "2019", "role": "source_export", "license": "fixture"},
                           {"id": "housing", "path": str(source), "sha256": sha256(source), "url": "fixture://housing", "vintage": "2025-02-28", "geography_vintage": "2019", "role": "source_export", "license": "fixture"}]}

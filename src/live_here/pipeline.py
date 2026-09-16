@@ -1,6 +1,7 @@
 """Reproducible local-file pipeline with explicit missingness and source lineage."""
 
 import json
+import math
 import platform
 from collections import Counter
 from pathlib import Path
@@ -8,10 +9,14 @@ from pathlib import Path
 from . import __version__
 from .catalog import FACTORS
 from .factors import aqi, snowfall, temperature, transit, walkability
+from .inference import infer_missing
 from .io import load_counties, sha256, write_csv
 from .ranking import average_ranks, runoff
 
 SUPPORTED = {"aqi", "walkability", "heat", "cold", "snowfall", "transit", "drought", "tradespeople", "groceries", "housing", "hazard_burden", "resilience"}
+FACTOR_FIELDS = ["fips", "factor", "value", "value_status", "is_inferred", "observation_period", "method",
+                 "quality_note", "inference_donor_fips", "nearest_donor_km", "farthest_donor_km", "unit",
+                 "source_ids", "geography_vintage"]
 
 
 def _normalized_factor(path, counties):
@@ -28,6 +33,8 @@ def _normalized_factor(path, counties):
         try:
             value = float(row.get("value", ""))
         except (TypeError, ValueError):
+            continue
+        if not math.isfinite(value):
             continue
         result[code] = {"value": value, "value_status": row.get("value_status", "derived_source"),
                         "observation_period": row.get("observation_period", ""),
@@ -48,8 +55,6 @@ def read_config(path):
     unsupported = set(factors) - SUPPORTED
     if unsupported:
         raise ValueError(f"Factors awaiting implementation: {sorted(unsupported)}")
-    if config.get("missing_policy") not in {"complete_case", "error"}:
-        raise ValueError("missing_policy must be complete_case or error")
     sources = {}
     for entry in config.get("sources", []):
         required = {"id", "path", "sha256", "url", "vintage", "geography_vintage", "role", "license"}
@@ -110,89 +115,142 @@ def run(config_path, output_path):
                 raise ValueError("Temperature requires one normalized county export")
             result, audit = temperature.calculate(paths, counties, settings.get("field", "hot_days" if factor == "heat" else "cold_days"))
             for row in result.values():
-                row["observation_period"] = inputs[0]["vintage"]
+                row["observation_period"] = row.get("observation_period") or inputs[0]["vintage"]
         elif factor == "snowfall":
             if len(inputs) != 1:
                 raise ValueError("Snowfall requires one normalized county export")
             result, audit = snowfall.calculate(paths, counties)
             for row in result.values():
-                row["observation_period"] = inputs[0]["vintage"]
+                row["observation_period"] = row.get("observation_period") or inputs[0]["vintage"]
         elif factor == "transit":
             if len(inputs) != 1:
                 raise ValueError("Transit requires one normalized county export")
             result, audit = _normalized_factor(paths[0], counties)
             for row in result.values():
-                row["observation_period"] = inputs[0]["vintage"]
+                row["observation_period"] = row.get("observation_period") or inputs[0]["vintage"]
         elif factor in {"drought", "tradespeople", "groceries", "housing", "hazard_burden", "resilience"}:
             if len(inputs) != 1:
                 raise ValueError(f"{factor} requires one normalized county export")
             result, audit = _normalized_factor(paths[0], counties)
             for row in result.values():
-                row["observation_period"] = inputs[0]["vintage"]
+                row["observation_period"] = row.get("observation_period") or inputs[0]["vintage"]
         else:
             if len(inputs) != 1:
                 raise ValueError("Walkability requires one consistent block-group export")
             result, audit = walkability.calculate(paths, counties)
             for row in result.values():
-                row["observation_period"] = inputs[0]["vintage"]
+                row["observation_period"] = row.get("observation_period") or inputs[0]["vintage"]
         results[factor], audits[factor] = result, audit
 
-    eligible = [code for code in counties if all(code in results[f] for f in factors)]
-    excluded = [code for code in counties if code not in eligible]
-    if excluded and config["missing_policy"] == "error":
-        raise ValueError(f"{len(excluded)} counties lack selected factors; no outputs written")
+    factor_records, inferred_by_factor, source_backed_by_factor = {}, {}, {}
     factor_rows = []
-    for code in counties:
-        for factor in factors:
-            observation = results[factor].get(code, {
-                "value": None, "value_status": "missing", "observation_period": "",
-                "method": "not_imputed", "quality_note": "No usable matched source observation",
-            })
-            factor_rows.append({"fips": code, "factor": factor, **observation,
-                                "unit": FACTORS[factor].unit,
-                                "source_ids": ";".join(lineage[factor]),
-                                "geography_vintage": vintage})
+    for factor in factors:
+        source_observations = results[factor]
+        source_codes = set(source_observations)
+        completed = infer_missing(counties, source_observations)
+        inferred_codes = set(counties) - source_codes
+        inferred_by_factor[factor] = inferred_codes
+        source_backed_by_factor[factor] = source_codes
+        factor_records[factor] = {}
+        for code in counties:
+            if code not in completed or not math.isfinite(float(completed[code]["value"])):
+                raise ValueError(f"{factor}: county {code} remains without a finite value after inference")
+            if code in source_codes:
+                observation = dict(completed[code])
+                observation.update({"is_inferred": "false", "inference_donor_fips": "",
+                                   "nearest_donor_km": "", "farthest_donor_km": ""})
+            else:
+                observation = dict(completed[code])
+                periods = sorted({str(completed[donor].get("observation_period", "")).strip()
+                                  for donor in observation["inference_donor_fips"].split(";")
+                                  if str(completed.get(donor, {}).get("observation_period", "")).strip()})
+                observation.update({"value_status": "inferred_geographic_idw", "is_inferred": "true",
+                                   "observation_period": ";".join(periods),
+                                   "method": "geographic_idw_k5_p2",
+                                   "quality_note": "Synthetic geographic estimate from nearest pre-inference factor donors; not a direct/source-derived county observation."})
+            source_ids = list(lineage[factor])
+            if code not in source_codes and config["geography_source"] not in source_ids:
+                source_ids.append(config["geography_source"])
+            record = {"fips": code, "factor": factor, **observation,
+                      "unit": FACTORS[factor].unit, "source_ids": ";".join(source_ids),
+                      "geography_vintage": vintage}
+            factor_records[factor][code] = record
+            factor_rows.append(record)
+
+    if any(record["value_status"] == "missing" for record in factor_rows):
+        raise ValueError("No selected factor may remain missing after inference")
+
+    codes = list(counties)
+    columns = [average_ranks([factor_records[f][code]["value"] for code in codes],
+                             FACTORS[f].higher_is_better) for f in factors]
+    matrix = [list(row) for row in zip(*columns)]
+    wins, elimination = runoff(matrix, config["iterations"], config["seed"])
+    averages = [sum(r) / len(r) for r in matrix]
+    avg_based = average_ranks(averages)
+    order = sorted(range(len(codes)), key=lambda i: (-elimination[i], -wins[i], averages[i], codes[i]))
     rankings = []
-    if eligible:
-        columns = [average_ranks([results[f][code]["value"] for code in eligible],
-                                 FACTORS[f].higher_is_better) for f in factors]
-        matrix = [list(row) for row in zip(*columns)]
-        wins, elimination = runoff(matrix, config["iterations"], config["seed"])
-        averages = [sum(r) / len(r) for r in matrix]
-        avg_based = average_ranks(averages)
-        order = sorted(range(len(eligible)), key=lambda i: (
-            -elimination[i], -wins[i], averages[i], eligible[i]))
-        for position, i in enumerate(order, 1):
-            code = eligible[i]
-            rankings.append({"runoff_rank": position, "fips": code,
-                             "name": counties[code]["name"], "state": counties[code]["state"],
-                             "average_factor_rank": averages[i], "average_based_rank": avg_based[i],
-                             "mean_elimination_round": elimination[i], "wins": wins[i],
-                             "win_rate": wins[i] / config["iterations"],
-                             **{f"{f}_rank": matrix[i][j] for j, f in enumerate(factors)}})
-    else:
-        # Validate run settings even when no county has complete observations.
-        runoff([[1]], config["iterations"], config["seed"])
+    for position, i in enumerate(order, 1):
+        code = codes[i]
+        inferred_factors = ";".join(f for f in factors if code in inferred_by_factor[f])
+        rankings.append({"runoff_rank": position, "fips": code,
+                         "name": counties[code]["name"], "state": counties[code]["state"],
+                         "average_factor_rank": averages[i], "average_based_rank": avg_based[i],
+                         "mean_elimination_round": elimination[i], "wins": wins[i],
+                         "win_rate": wins[i] / config["iterations"], "inferred_factors": inferred_factors,
+                         **{f"{f}_rank": matrix[i][j] for j, f in enumerate(factors)}})
     coverage = {
         "mode": config["mode"], "production_ready": False, "geography_vintage": vintage,
-        "universe_count": len(counties), "ranked_count": len(eligible),
-        "excluded_fips": excluded, "selected_factors": factors,
+        "universe_count": len(counties), "ranked_count": len(counties), "selected_factors": factors,
         "omitted_v1_factors": [f for f in FACTORS if f not in factors],
-        "missing_policy": config["missing_policy"],
         "per_factor": {f: dict(Counter(r["value_status"] for r in factor_rows if r["factor"] == f)) for f in factors},
+        "inference": {
+            "method": "geographic_idw_k5_p2",
+            "coordinate_source": "Census 2020 county mean centers of population",
+            "counties_with_inference": len({code for factor in factors for code in inferred_by_factor[factor]}),
+            "counties_without_inference": len(counties) - len({code for factor in factors for code in inferred_by_factor[factor]}),
+            "county_inference_rate": len({code for factor in factors for code in inferred_by_factor[factor]}) / len(counties),
+            "per_factor": {
+                factor: {"source_backed_count": len(source_backed_by_factor[factor]),
+                         "inferred_count": len(inferred_by_factor[factor]),
+                         "inference_rate": len(inferred_by_factor[factor]) / len(counties)}
+                for factor in factors
+            },
+        },
         "adapter_audits": audits,
-        "interpretation": "Ranks compare complete cases only. Missingness can bias the ranked subset. Win rates describe tournaments, not measurement confidence.",
+        "interpretation": "All counties are ranked. Inferred values are deterministic geographic estimates, not direct observations or confidence intervals. Win rates describe tournaments, not measurement confidence.",
     }
     output = Path(output_path)
     if output.exists() and (not output.is_dir() or any(output.iterdir())):
         raise ValueError("Output directory must be new or empty; previous runs are preserved")
     output.mkdir(parents=True, exist_ok=True)
-    write_csv(output / "counties.csv", [{k: r[k] for k in ("fips", "name", "state", "geography_vintage")} for r in counties.values()],
-              ["fips", "name", "state", "geography_vintage"])
-    write_csv(output / "factors.csv", factor_rows, list(factor_rows[0]))
+    write_csv(output / "counties.csv", [{k: r[k] for k in ("fips", "name", "state", "geography_vintage", "latitude", "longitude", "coordinate_vintage")} for r in counties.values()],
+              ["fips", "name", "state", "geography_vintage", "latitude", "longitude", "coordinate_vintage"])
+    write_csv(output / "factors.csv", factor_rows, FACTOR_FIELDS)
     rank_fields = ["runoff_rank", "fips", "name", "state", "average_factor_rank", "average_based_rank",
-                   "mean_elimination_round", "wins", "win_rate", *[f"{f}_rank" for f in factors]]
+                   "mean_elimination_round", "wins", "win_rate", *[f"{f}_rank" for f in factors], "inferred_factors"]
     write_csv(output / "rankings.csv", rankings, rank_fields)
+    presentation_fields = ["fips", "name", "state", "runoff_rank", "average_factor_rank", "average_based_rank",
+                           "mean_elimination_round", "wins", "win_rate"]
+    for factor in factors:
+        presentation_fields.extend([factor, f"{factor}_rank"])
+    presentation_fields.append("inferred_factors")
+    presentation_rows = []
+    for ranking in rankings:
+        code = ranking["fips"]
+        inferred = set(ranking["inferred_factors"].split(";")) if ranking["inferred_factors"] else set()
+        any_inferred = bool(inferred)
+        row = {"fips": code, "name": ranking["name"] + ("*" if any_inferred else ""),
+               "state": ranking["state"], "inferred_factors": ranking["inferred_factors"]}
+        for field in ("runoff_rank", "average_factor_rank", "average_based_rank", "mean_elimination_round", "wins", "win_rate"):
+            value = ranking[field]
+            row[field] = f"{value}*" if any_inferred else value
+        for factor in factors:
+            value = factor_records[factor][code]["value"]
+            rank = ranking[f"{factor}_rank"]
+            row[factor] = f"{value}*" if factor in inferred else value
+            row[f"{factor}_rank"] = f"{rank}*" if factor in inferred else rank
+        presentation_rows.append(row)
+    write_csv(output / "county_rankings.csv", presentation_rows, presentation_fields)
     (output / "coverage.json").write_text(json.dumps(coverage, indent=2) + "\n")
     manifest = {
         "package_version": __version__, "python_version": platform.python_version(),

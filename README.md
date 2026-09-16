@@ -31,7 +31,7 @@ live-here build --transport curl
 
 Every build is a clean normalized-data build. It recreates
 `data/interim/current/`, reuses verified immutable cache files in
-`data/raw/current/`, runs the ten source gatherers in the fixed V1 order, then
+`data/raw/current/`, runs the eleven source gatherers in the fixed V1 order, then
 runs the ranking pipeline from `data/interim/current/config.json`.
 
 Successful builds replace the canonical generated output directory:
@@ -41,6 +41,7 @@ outputs/
   counties.csv
   factors.csv
   rankings.csv
+  county_rankings.csv
   coverage.json
   run-manifest.json
 ```
@@ -58,16 +59,27 @@ live-here catalog
 The catalog lists the implemented V1 factors, units, directions, and source
 status.
 
-## Incompleteness
+## Missing values and presentation
 
-V1 is a research output, not a final product. It preserves all counties in
-factor and coverage outputs, but rankings compare only complete cases. Missing
-source observations remain missing; zero is treated as a measurement, not a
-placeholder.
+V1 ranks the full target county universe. Factor adapters preserve source
+missingness; the pipeline fills residual gaps with deterministic geographic
+inverse-distance estimates from two to five nearby source-backed counties.
+Inferred values are explicitly marked in `factors.csv` and `coverage.json` and
+are never reused as donors. Machine-readable outputs remain numeric.
 
-Deferred work includes geographic inference/provenance review, national transit
-coverage decisions, source QA, performance/determinism hardening, v1 release
-packaging, nine V2 factors, and the later GIS/web application.
+`county_rankings.csv` is the human-facing presentation CSV. A trailing `*`
+marks a county result that uses one or more inferred factor values, and marks
+the individual inferred factor value and rank. The star is not a confidence
+interval or a claim that the county was directly observed.
+
+The 2019 Valdez-Cordova county (`02261`) uses the reviewed Census geography
+bridge to the 2020 Chugach (`02063`) and Copper River (`02066`) centers,
+weighted by their published populations. Other county coordinate joins remain
+exact-FIPS only.
+
+Deferred work includes national transit coverage decisions, source QA,
+performance/determinism hardening, v1 release packaging, nine V2 factors, and
+the later GIS/web application.
 
 ## Repository Layout
 
@@ -77,7 +89,7 @@ packaging, nine V2 factors, and the later GIS/web application.
 | `scripts/` | Fixed V1 source gatherers used by `live-here build` |
 | `tests/` | BDD, numerical, source, ranking, and acceptance tests |
 | `examples/demo/` | Small synthetic pipeline fixtures retained for internal tests |
-| `docs/methodology.md` | Factor contracts, ranking rules, and missingness policy |
+| `docs/methodology.md` | Factor contracts, ranking rules, and missingness behavior |
 | `docs/sources.md` | Current source list, vintages, methods, coverage limits |
 | `docs/roadmap.md` | Remaining V1 and V2 work |
 

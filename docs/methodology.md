@@ -11,10 +11,14 @@ build configuration. FIPS values are five-character strings. Geography vintage,
 source vintage, observation period, method, quality notes, units, and source IDs
 are recorded in the factor rows, coverage report, and run manifest.
 
-Every county remains present in `counties.csv` and in long-form `factors.csv`.
-Counties missing one or more selected factors remain unranked under the
-complete-case policy unless a configuration explicitly chooses to fail on
-missingness.
+Every county remains present in `counties.csv`, long-form `factors.csv`, and
+the ranking outputs. The 2019 county identity rows carry latitude and
+longitude from the Census 2020 Mean Center of Population by County source;
+the join is exact on five-digit FIPS and uses `coordinate_vintage=2020`.
+The one reviewed cross-vintage exception is legacy Valdez-Cordova (`02261`),
+which has no 2020 direct row because it became Chugach (`02063`) and Copper
+River (`02066`); its coordinate is reconstructed as their positive-population-
+weighted mean. No other unmatched FIPS is bridged.
 
 ## V1 Factor Contracts
 
@@ -33,10 +37,11 @@ missingness.
 | `hazard_burden` | FEMA NRI hazard burden composite | Lower | index |
 | `resilience` | FEMA-based resilience composite | Higher | index |
 
-No factor may read workbook estimates, calibrate to old ranks, map values onto
-old workbook distributions, or silently fill missing values. Source-derived
-interpolation or proxy status must be visible in `value_status`, `method`, and
-`quality_note`.
+No factor adapter may read workbook estimates, calibrate to old ranks, map
+values onto old workbook distributions, or silently fill missing values.
+Source-derived interpolation or proxy status must be visible in
+`value_status`, `method`, and `quality_note`; residual gaps are handled only by
+the documented pipeline-level geographic inference step.
 
 ## Formulas and Ranking
 
@@ -70,8 +75,17 @@ frequency percentile. FEMA resilience combines community resilience,
 vulnerability, climate-hazard risk, and social vulnerability components. These
 are source-scale indices, not literal disaster counts or future-climate claims.
 
-Factor ranks use average ties and respect each factor direction. Composite
-ranking uses only counties complete for all selected factors. The runoff engine
-uses seeded shuffled-factor elimination and orders results by mean elimination
-round, wins, average factor rank, and FIPS. Win rates describe the tournament
-procedure, not confidence that a county is objectively best.
+Factor ranks use average ties and respect each factor direction. Before
+ranking, residual missing factor values are inferred independently with
+Haversine distance using Earth radius `6371.0088` km. Each factor freezes its
+finite source-backed donor set before filling gaps, selects at most five
+donors and requires at least two, orders ties by `(distance_km, donor_fips)`,
+and uses inverse-distance-squared weights with a 1 km denominator floor. There
+is no maximum donor-distance cutoff, and inferred values never become donors.
+
+The runoff engine uses seeded shuffled-factor elimination and orders results by
+mean elimination round, wins, average factor rank, and FIPS. Win rates describe
+the tournament procedure, not confidence that a county is objectively best.
+Machine-readable CSV values are undecorated; `county_rankings.csv` appends `*`
+to a county's own inferred factor values/ranks and its own composite/runoff
+fields when any factor was inferred.

@@ -72,7 +72,12 @@ def number(value, label, minimum=None, maximum=None):
 
 
 def load_counties(path):
-    rows = csv_rows(path, ["fips", "name", "state", "geography_vintage"])
+    required = ["fips", "name", "state", "geography_vintage", "latitude", "longitude", "coordinate_vintage"]
+    rows = csv_rows(path, required)
+    if not rows:
+        raise ValueError("County universe is empty")
+    if list(rows[0]) != required:
+        raise ValueError(f"County universe must contain exactly: {required}")
     counties = {}
     for row in rows:
         key = fips(row["fips"])
@@ -80,9 +85,11 @@ def load_counties(path):
             raise ValueError(f"Duplicate county {key}")
         if not all(row[k].strip() for k in ("name", "state", "geography_vintage")):
             raise ValueError(f"Incomplete county identity: {key}")
+        if row["coordinate_vintage"].strip() != "2020":
+            raise ValueError(f"County coordinate vintage must be 2020: {key}")
+        number(row["latitude"], f"{key} latitude", -90, 90)
+        number(row["longitude"], f"{key} longitude", -180, 180)
         counties[key] = row
-    if not counties:
-        raise ValueError("County universe is empty")
     if len({r["geography_vintage"] for r in rows}) != 1:
         raise ValueError("County universe mixes geography vintages")
     return dict(sorted(counties.items()))

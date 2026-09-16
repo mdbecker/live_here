@@ -12,7 +12,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .io import csv_rows, fips, sha256, write_csv
+from .io import csv_rows, fips, number, sha256, write_csv
 
 STATE_NAMES = dict(pair.split("=", 1) for pair in (
     "AL=Alabama|AK=Alaska|AZ=Arizona|AR=Arkansas|CA=California|CO=Colorado|CT=Connecticut|"
@@ -24,6 +24,10 @@ STATE_NAMES = dict(pair.split("=", 1) for pair in (
     "SD=South Dakota|TN=Tennessee|TX=Texas|UT=Utah|VT=Vermont|VA=Virginia|WA=Washington|"
     "WV=West Virginia|WI=Wisconsin|WY=Wyoming|PR=Puerto Rico|VI=Virgin Islands"
 ).split("|"))
+
+# Reviewed 2019-to-2020 Census geography change: Valdez-Cordova was split
+# into Chugach and Copper River.  This is intentionally the only bridge.
+CENTER_SUCCESSOR_BRIDGES = {"02261": ("02063", "02066")}
 
 
 def curl_fetch(url):
@@ -126,6 +130,48 @@ def normalize_counties(text, vintage):
     return sorted(rows, key=lambda r: r["fips"])
 
 
+def attach_population_centers(counties, text):
+    """Attach validated Census 2020 mean centers to target county rows."""
+    county_codes = {row["fips"] for row in counties}
+    reader = csv.DictReader(io.StringIO(text.lstrip("\ufeff")))
+    required = {"STATEFP", "COUNTYFP", "POPULATION", "LATITUDE", "LONGITUDE"}
+    if not required.issubset(reader.fieldnames or []):
+        raise ValueError("Census population-center file lacks required columns")
+    centers = {}
+    for row in reader:
+        state = str(row.get("STATEFP", "")).strip()
+        county = str(row.get("COUNTYFP", "")).strip()
+        if not state.isdigit() or not county.isdigit() or len(state) > 2 or len(county) > 3:
+            continue
+        try:
+            code = fips(state.zfill(2) + county.zfill(3))
+        except ValueError:
+            continue
+        if code in centers:
+            raise ValueError(f"Duplicate Census population center: {code}")
+        latitude = number(row.get("LATITUDE"), f"{code} latitude", -90, 90)
+        longitude = number(row.get("LONGITUDE"), f"{code} longitude", -180, 180)
+        population = number(row.get("POPULATION"), f"{code} population", 0)
+        centers[code] = {"latitude": latitude, "longitude": longitude, "population": population}
+    missing = sorted(county_codes - set(centers))
+    if "02261" in missing:
+        successors = CENTER_SUCCESSOR_BRIDGES["02261"]
+        if any(successor not in centers or centers[successor]["population"] <= 0 for successor in successors):
+            raise ValueError("Missing or invalid Census population-center successors for: 02261")
+        total_population = sum(centers[successor]["population"] for successor in successors)
+        centers["02261"] = {
+            "latitude": sum(centers[successor]["population"] * centers[successor]["latitude"] for successor in successors) / total_population,
+            "longitude": sum(centers[successor]["population"] * centers[successor]["longitude"] for successor in successors) / total_population,
+            "population": total_population,
+        }
+        missing.remove("02261")
+    if missing:
+        raise ValueError(f"Missing Census population centers for: {', '.join(missing)}")
+    return [{**row, "latitude": centers[row["fips"]]["latitude"],
+             "longitude": centers[row["fips"]]["longitude"], "coordinate_vintage": "2020"}
+            for row in sorted(counties, key=lambda item: item["fips"])]
+
+
 def aqi_crosswalk(counties, observations):
     """Only exact names and removal of non-city legal suffixes; no fuzzy matching."""
     lookup = defaultdict(set)
@@ -174,7 +220,10 @@ def prepare_current(root, source_definitions, receipts):
         except UnicodeDecodeError:
             text = payload.decode("cp1252")
         counties = normalize_counties(text, "2019")
-    write_csv(target / "counties.csv", counties, ["fips", "name", "state", "geography_vintage"])
+    center_text = paths["centers"].read_text(encoding="utf-8-sig")
+    counties = attach_population_centers(counties, center_text)
+    write_csv(target / "counties.csv", counties,
+              ["fips", "name", "state", "geography_vintage", "latitude", "longitude", "coordinate_vintage"])
     aqis = sorted(key for key in paths if key.startswith("aqi"))
     observations = [row for key in aqis for row in csv_rows(paths[key])]
     crosswalk, audit = aqi_crosswalk(counties, observations)
@@ -204,8 +253,8 @@ def prepare_current(root, source_definitions, receipts):
                 "raw_parent_sha256": {key: receipts[key]["sha256"] for key in parents},
                 "raw_parent_urls": {key: receipts[key]["url"] for key in parents}}
 
-    manifest = [source("counties", target / "counties.csv", ["counties"], "2019",
-                       "Census 2019 gazetteer USPS/GEOID/NAME; all source counties retained"),
+    manifest = [source("counties", target / "counties.csv", ["counties", "centers"], "2019",
+                       "Census 2019 gazetteer identity plus 2020 county mean centers; all source counties retained"),
                 source("aqi_crosswalk", target / "aqi-crosswalk.csv", ["counties", *aqis], "2019 target; " + "-".join(key.removeprefix("aqi") for key in aqis) + " source names",
                        audit["method"]),
                 source("walkability", target / "walkability.csv", ["walkability"], "EPA SLD 3.0 2021; 2018 ACS population",
@@ -216,13 +265,13 @@ def prepare_current(root, source_definitions, receipts):
         manifest[-1]["role"] = "raw_source"
         manifest[-1]["source_geography_vintage"] = "As reported by EPA; name-matched to 2019 target; not a spatial reaggregation"
     config = {"mode": "research", "geography_source": "counties", "factors": ["aqi", "walkability"],
-              "missing_policy": "complete_case", "iterations": 1000, "seed": 42,
+              "iterations": 1000, "seed": 42,
               "adapters": {"aqi": {"sources": aqis, "crosswalk": "aqi_crosswalk"},
                            "walkability": {"sources": ["walkability"]}}, "sources": manifest,
               "geography_scope": "2019 Census gazetteer: 50 states, DC and Puerto Rico; other Island Areas absent",
-              "limitations": ["Source coverage and complete-case exclusions remain explicit; dataset-specific gatherers append the selected V1 factors", "EPA SLD geography fields are documented as 2019; GEOID20 is not 2020 Census geography",
+              "limitations": ["Source coverage and geographic inference remain explicit; dataset-specific gatherers append the selected V1 factors", "EPA SLD geography fields are documented as 2019; GEOID20 is not 2020 Census geography",
                               "AQI uses the two latest complete years selected from EPA's published listing; exact-name mapping does not establish unchanged boundaries",
-                              "Unmatched names and counties without observations remain missing; no imputation"]}
+                              "Unmatched names and counties without observations are retained for pipeline-level geographic inference"]}
     config_path = target / "config.json"
     if config_path.exists():
         existing = json.loads(config_path.read_text())

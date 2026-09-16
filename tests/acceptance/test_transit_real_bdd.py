@@ -30,7 +30,7 @@ class TransitRealDataBDD(unittest.TestCase):
         # Then transit is selected and its incomplete source coverage remains visible
         self.assertIn("transit", coverage["selected_factors"])
         self.assertEqual(coverage["per_factor"]["transit"]["derived_source"], 530)
-        self.assertGreater(coverage["per_factor"]["transit"]["missing"], 2000)
+        self.assertGreater(coverage["per_factor"]["transit"]["inferred_geographic_idw"], 2000)
 
     def test_given_transit_export_when_manifested_then_source_and_target_geographies_are_distinguished(self):
         config = json.loads((ROOT / "data/interim/current/config.json").read_text())

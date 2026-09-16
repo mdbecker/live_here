@@ -34,6 +34,7 @@ CANONICAL_OUTPUTS = {
     "counties.csv",
     "factors.csv",
     "rankings.csv",
+    "county_rankings.csv",
     "coverage.json",
     "run-manifest.json",
 }
@@ -112,9 +113,9 @@ def write_csv(path, rows, fields):
 counties = current / "counties.csv"
 transit = current / "transit.csv"
 write_csv(counties, [
-    {"fips": "01001", "name": "Alpha County", "state": "AA", "geography_vintage": "2019"},
-    {"fips": "01003", "name": "Beta County", "state": "AA", "geography_vintage": "2019"},
-], ["fips", "name", "state", "geography_vintage"])
+    {"fips": "01001", "name": "Alpha County", "state": "AA", "geography_vintage": "2019", "latitude": "0", "longitude": "0", "coordinate_vintage": "2020"},
+    {"fips": "01003", "name": "Beta County", "state": "AA", "geography_vintage": "2019", "latitude": "0", "longitude": "1", "coordinate_vintage": "2020"},
+], ["fips", "name", "state", "geography_vintage", "latitude", "longitude", "coordinate_vintage"])
 write_csv(transit, [
     {"fips": "01001", "value": "10", "value_status": "derived_source", "observation_period": "fixture", "method": "fixture", "quality_note": ""},
     {"fips": "01003", "value": "20", "value_status": "derived_source", "observation_period": "fixture", "method": "fixture", "quality_note": ""},
@@ -123,7 +124,6 @@ config = {
     "mode": "research",
     "geography_source": "counties",
     "factors": ["transit"],
-    "missing_policy": "complete_case",
     "iterations": 5,
     "seed": 1,
     "adapters": {"transit": {"sources": ["transit"]}},

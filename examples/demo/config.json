@@ -5,7 +5,6 @@
     "aqi",
     "walkability"
   ],
-  "missing_policy": "complete_case",
   "iterations": 1000,
   "seed": 42,
   "adapters": {
@@ -25,7 +24,7 @@
     {
       "id": "counties",
       "path": "counties.csv",
-      "sha256": "652fe3f66fef0c7a7541a6b4fa2a18502d45e4ecee64f60ff63ab20a602a264b",
+      "sha256": "ee8ae87337095a380ebba1c35adf1b98f1e1da59cfbd4b8215966b2a4d6e6b19",
       "url": "synthetic://live-here-demo/counties.csv",
       "vintage": "synthetic-2020",
       "geography_vintage": "fixture-2020",

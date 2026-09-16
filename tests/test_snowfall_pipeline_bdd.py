@@ -14,13 +14,13 @@ class SnowfallPipelineBehaviors(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             counties = root / "counties.csv"
-            counties.write_text("fips,name,state,geography_vintage\n01001,Alpha,AL,2019\n01003,Beta,AL,2019\n")
+            counties.write_text("fips,name,state,geography_vintage,latitude,longitude,coordinate_vintage\n01001,Alpha,AL,2019,0,0,2020\n01003,Beta,AL,2019,0,1,2020\n")
             snow = root / "snowfall.csv"
             snow.write_text("fips,snowfall_feet,value_status,method,stations_used,max_distance_km,source_vintage\n"
                             "01001,1.2,derived_nearby,idw_inverse_square,2,50,NOAA 2006-2020 normals\n"
                             "01003,4.8,derived_nearby,idw_inverse_square,2,50,NOAA 2006-2020 normals\n")
             config = {"mode": "research", "geography_source": "counties", "factors": ["snowfall"],
-                      "missing_policy": "complete_case", "iterations": 10, "seed": 42,
+                      "iterations": 10, "seed": 42,
                       "adapters": {"snowfall": {"sources": ["snowfall"]}},
                       "sources": [{"id": "counties", "path": str(counties), "sha256": sha256(counties), "url": "fixture://counties",
                                    "vintage": "2019", "geography_vintage": "2019", "role": "source_export", "license": "fixture"},

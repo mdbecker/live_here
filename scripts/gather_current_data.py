@@ -13,6 +13,7 @@ from live_here.acquire import curl_fetch, discover_aqi_releases, download
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = {
     "counties": ("2019_Gaz_counties_national.zip", "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2019_Gazetteer/2019_Gaz_counties_national.zip"),
+    "centers": ("CenPop2020_Mean_CO.txt", "https://www2.census.gov/geo/docs/reference/cenpop2020/county/CenPop2020_Mean_CO.txt"),
     "walkability": ("EPA_SmartLocationDatabase_V3_Jan_2021_Final.csv", "https://edg.epa.gov/data/public/OA/EPA_SmartLocationDatabase_V3_Jan_2021_Final.csv"),
 }
 AQI_LISTING_URL = "https://aqs.epa.gov/aqsweb/airdata/download_files.html"

@@ -25,6 +25,7 @@ CANONICAL_OUTPUTS = {
     "counties.csv",
     "factors.csv",
     "rankings.csv",
+    "county_rankings.csv",
     "coverage.json",
     "run-manifest.json",
 }

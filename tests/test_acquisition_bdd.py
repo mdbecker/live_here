@@ -103,6 +103,62 @@ class SourceAcquisitionBehaviors(unittest.TestCase):
         self.assertEqual([r["fips"] for r in rows], ["01001", "72001"])
         self.assertTrue(all(r["geography_vintage"] == "2019" for r in rows))
 
+    def test_given_matching_population_centers_when_geography_is_prepared_then_coordinates_are_attached_by_exact_fips(self):
+        api = self.api()
+        counties = api.normalize_counties("USPS\tGEOID\tNAME\nAL\t01001\tAutauga County\n", "2019")
+        result = api.attach_population_centers(counties, "STATEFP,COUNTYFP,COUNAME,STNAME,POPULATION,LATITUDE,LONGITUDE\n01,001,Autauga,Alabama,1,+32.5,-86.4\n")
+        self.assertEqual(result[0]["latitude"], 32.5)
+        self.assertEqual(result[0]["longitude"], -86.4)
+        self.assertEqual(result[0]["coordinate_vintage"], "2020")
+
+    def test_given_missing_target_population_center_when_geography_is_prepared_then_it_fails(self):
+        api = self.api()
+        counties = api.normalize_counties("USPS\tGEOID\tNAME\nAL\t01001\tAutauga County\n", "2019")
+        text = "STATEFP,COUNTYFP,COUNAME,STNAME,POPULATION,LATITUDE,LONGITUDE\n01,003,Baldwin,Alabama,1,31,-87\n"
+        with self.assertRaisesRegex(ValueError, "Missing Census population centers"):
+            api.attach_population_centers(counties, text)
+
+    def test_given_duplicate_target_population_centers_when_geography_is_prepared_then_it_fails(self):
+        api = self.api()
+        counties = api.normalize_counties("USPS\tGEOID\tNAME\nAL\t01001\tAutauga County\n", "2019")
+        text = ("STATEFP,COUNTYFP,COUNAME,STNAME,POPULATION,LATITUDE,LONGITUDE\n"
+                "01,001,Autauga,Alabama,1,32.5,-86.4\n"
+                "01,001,Autauga,Alabama,2,32.6,-86.5\n")
+        with self.assertRaisesRegex(ValueError, "Duplicate Census population center"):
+            api.attach_population_centers(counties, text)
+
+    def test_given_invalid_target_population_center_coordinates_when_geography_is_prepared_then_it_fails(self):
+        api = self.api()
+        counties = api.normalize_counties("USPS\tGEOID\tNAME\nAL\t01001\tAutauga County\n", "2019")
+        text = "STATEFP,COUNTYFP,COUNAME,STNAME,POPULATION,LATITUDE,LONGITUDE\n01,001,Autauga,Alabama,1,91,-86.4\n"
+        with self.assertRaisesRegex(ValueError, "01001 latitude"):
+            api.attach_population_centers(counties, text)
+
+    def test_given_legacy_valdez_cordova_without_direct_center_when_geography_is_prepared_then_successors_are_population_weighted(self):
+        api = self.api()
+        counties = api.normalize_counties("USPS\tGEOID\tNAME\nAK\t02261\tValdez-Cordova Census Area\n", "2019")
+        text = ("STATEFP,COUNTYFP,COUNAME,STNAME,POPULATION,LATITUDE,LONGITUDE\n"
+                "02,063,Chugach,Alaska,100,60, -145\n"
+                "02,066,Copper River,Alaska,300,62, -145\n")
+        result = api.attach_population_centers(counties, text)
+        self.assertAlmostEqual(result[0]["latitude"], 61.5)
+        self.assertAlmostEqual(result[0]["longitude"], -145.0)
+        self.assertEqual(result[0]["fips"], "02261")
+
+    def test_given_missing_legacy_valdez_cordova_successor_when_geography_is_prepared_then_it_fails(self):
+        api = self.api()
+        counties = api.normalize_counties("USPS\tGEOID\tNAME\nAK\t02261\tValdez-Cordova Census Area\n", "2019")
+        text = "STATEFP,COUNTYFP,COUNAME,STNAME,POPULATION,LATITUDE,LONGITUDE\n02,063,Chugach,Alaska,100,60,-145\n"
+        with self.assertRaises(ValueError):
+            api.attach_population_centers(counties, text)
+
+    def test_given_unrelated_unmatched_target_fips_when_geography_is_prepared_then_it_still_fails(self):
+        api = self.api()
+        counties = api.normalize_counties("USPS\tGEOID\tNAME\nAL\t01001\tAutauga County\n", "2019")
+        text = "STATEFP,COUNTYFP,COUNAME,STNAME,POPULATION,LATITUDE,LONGITUDE\n02,063,Chugach,Alaska,100,60,-145\n"
+        with self.assertRaises(ValueError):
+            api.attach_population_centers(counties, text)
+
     def test_given_generic_geoid_export_when_adapter_runs_then_source_vintage_is_not_relabelled(self):
         from live_here.factors.walkability import calculate
         with tempfile.TemporaryDirectory() as tmp:
@@ -119,12 +175,14 @@ class SourceAcquisitionBehaviors(unittest.TestCase):
             raw = root / "data/raw/current"
             raw.mkdir(parents=True)
             files = {"counties": ("counties.zip", "https://example.test/counties"),
+                     "centers": ("centers.txt", "https://example.test/centers"),
                      "walkability": ("walk.csv", "https://example.test/walk"),
                      "aqi2023": ("aqi.csv", "https://example.test/aqi")}
             with zipfile.ZipFile(raw / "counties.zip", "w") as archive:
-                archive.writestr("counties.txt", "USPS\tGEOID\tNAME\nAL\t01001\tAutauga County\nAL\t01003\tBaldwin County\n")
-            (raw / "walk.csv").write_text("GEOID20,STATEFP,COUNTYFP,TotPop,NatWalkInd\n010010001001,01,001,100,8\n")
-            (raw / "aqi.csv").write_text("State,County,Year,Days with AQI,Unhealthy for Sensitive Groups Days,Unhealthy Days,Very Unhealthy Days,Hazardous Days\nAlabama,Autauga,2023,365,10,0,0,0\n")
+                archive.writestr("counties.txt", "USPS\tGEOID\tNAME\nAL\t01001\tAutauga County\nAL\t01003\tBaldwin County\nAL\t01005\tBarbour County\n")
+            (raw / "centers.txt").write_text("STATEFP,COUNTYFP,COUNAME,STNAME,POPULATION,LATITUDE,LONGITUDE\n01,001,Autauga,Alabama,1,32,-86\n01,003,Baldwin,Alabama,1,31,-87\n01,005,Barbour,Alabama,1,30,-85\n")
+            (raw / "walk.csv").write_text("GEOID20,STATEFP,COUNTYFP,TotPop,NatWalkInd\n010010001001,01,001,100,8\n010030001001,01,003,100,6\n")
+            (raw / "aqi.csv").write_text("State,County,Year,Days with AQI,Unhealthy for Sensitive Groups Days,Unhealthy Days,Very Unhealthy Days,Hazardous Days\nAlabama,Autauga,2023,365,10,0,0,0\nAlabama,Baldwin,2023,365,20,0,0,0\n")
             receipts = {key: {"url": url, "sha256": api.sha256(raw / name), "retrieved_at": "2026-09-12T00:00:00Z"}
                         for key, (name, url) in files.items()}
             api.prepare_current(root, files, receipts)
@@ -133,8 +191,8 @@ class SourceAcquisitionBehaviors(unittest.TestCase):
             self.assertEqual(config["mode"], "research")
             self.assertTrue(all(s["raw_parent_sha256"] for s in config["sources"]))
             report = run(config_path, root / "result")
-            self.assertEqual(report["ranked_count"], 1)
-            self.assertEqual(report["excluded_fips"], ["01003"])
+            self.assertEqual(report["ranked_count"], 3)
+            self.assertEqual(report["inference"]["per_factor"]["aqi"]["inferred_count"], 1)
 
     def test_given_epa_release_listing_when_discovered_then_latest_two_complete_years_are_selected(self):
         """Given a listing with an in-progress year, when discovered, then only complete years are selected."""

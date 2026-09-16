@@ -55,9 +55,18 @@ class GeographyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp) / "counties.csv"
             for rows in ("01001,A,AL,2020\n01001,B,AL,2020\n", "01001,A,AL,2020\n01003,B,AL,2023\n"):
-                p.write_text("fips,name,state,geography_vintage\n" + rows)
+                p.write_text("fips,name,state,geography_vintage,latitude,longitude,coordinate_vintage\n" +
+                             "".join(row.replace("\n", ",0,0,2020\n") for row in rows.splitlines(True)))
                 with self.assertRaises(ValueError):
                     load_counties(p)
+
+    def test_invalid_county_coordinates_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "counties.csv"
+            p.write_text("fips,name,state,geography_vintage,latitude,longitude,coordinate_vintage\n"
+                         "01001,A,AL,2020,91,0,2020\n")
+            with self.assertRaisesRegex(ValueError, "latitude"):
+                load_counties(p)
 
 
 class FactorTests(unittest.TestCase):
@@ -134,8 +143,8 @@ class PipelineTests(unittest.TestCase):
             result = run(DEMO / "config.json", a)
             run(DEMO / "config.json", b)
             self.assertEqual(result["universe_count"], 3)
-            self.assertEqual(result["ranked_count"], 2)
-            self.assertEqual(result["excluded_fips"], ["01005"])
+            self.assertEqual(result["ranked_count"], 3)
+            self.assertEqual(result["inference"]["per_factor"]["aqi"]["inferred_count"], 1)
             for file in a.iterdir():
                 self.assertEqual(file.read_bytes(), (b / file.name).read_bytes())
             manifest = json.loads((a / "run-manifest.json").read_text())
@@ -143,14 +152,6 @@ class PipelineTests(unittest.TestCase):
                 self.assertEqual(sha256(a / name), checksum)
             with self.assertRaisesRegex(ValueError, "new or empty"):
                 run(DEMO / "config.json", a)
-
-    def test_strict_missingness_does_not_write_output(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            config = self.changed_config(tmp, missing_policy="error")
-            out = Path(tmp) / "out"
-            with self.assertRaisesRegex(ValueError, "lack selected factors"):
-                run(config, out)
-            self.assertFalse(out.exists())
 
     def test_rejects_checksum_tampering_and_unimplemented_scope(self):
         with tempfile.TemporaryDirectory() as tmp:

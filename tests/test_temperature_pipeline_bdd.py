@@ -14,14 +14,14 @@ class TemperaturePipelineBehaviors(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             counties = root / "counties.csv"
-            counties.write_text("fips,name,state,geography_vintage\n01001,Alpha,AL,2019\n01003,Beta,AL,2019\n")
+            counties.write_text("fips,name,state,geography_vintage,latitude,longitude,coordinate_vintage\n01001,Alpha,AL,2019,0,0,2020\n01003,Beta,AL,2019,0,1,2020\n")
             temperature = root / "temperature.csv"
             temperature.write_text("fips,hot_days,cold_days,value_status,method,stations_used,max_distance_km,source_vintage\n"
                                    "01001,40,120,derived_nearby,idw_inverse_square,2,50,NOAA 2006-2020 normals\n"
                                    "01003,80,100,derived_nearby,idw_inverse_square,2,50,NOAA 2006-2020 normals\n")
             config = {
                 "mode": "research", "geography_source": "counties", "factors": ["heat"],
-                "missing_policy": "complete_case", "iterations": 10, "seed": 42,
+                "iterations": 10, "seed": 42,
                 "adapters": {"heat": {"sources": ["temperature"], "field": "hot_days"}},
                 "sources": [
                     {"id": "counties", "path": str(counties), "sha256": sha256(counties), "url": "fixture://counties",
