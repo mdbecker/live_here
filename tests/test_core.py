@@ -1,6 +1,7 @@
 import json
 import math
 import tempfile
+import time
 import unittest
 import zipfile
 from pathlib import Path
@@ -34,6 +35,20 @@ class RankingTests(unittest.TestCase):
         self.assertEqual(sum(first[0]), 6000)
         self.assertTrue(all(1700 < n < 2300 for n in first[0]))
         self.assertAlmostEqual(sum(first[1]), 6)
+
+    def test_given_national_rank_matrix_when_runoff_runs_then_cpu_budget_is_respected(self):
+        """Given the national rank matrix, when runoff runs, then it stays within the build budget."""
+        county_count, factor_count, iterations = 3220, 13, 5
+        matrix = [[float((county * 17 + factor * 11) % county_count + 1)
+                   for factor in range(factor_count)]
+                  for county in range(county_count)]
+
+        started = time.perf_counter()
+        result = runoff(matrix, iterations, 42)
+
+        self.assertEqual(sum(result[0]), iterations)
+        self.assertEqual(len(result[1]), county_count)
+        self.assertLess(time.perf_counter() - started, 1.0)
 
     def test_single_county_and_invalid_inputs(self):
         self.assertEqual(runoff([[1]], 10), ([10], [1.0]))

@@ -1,11 +1,11 @@
 # Live Here
 
 Reproducible county comparisons for choosing where to live. The repository builds
-a source-only V1 research dataset for twelve county factors and writes one
+a source-only V1 research dataset for thirteen county factors and writes one
 canonical machine-readable output set.
 
 The project is intentionally small: standard-library Python, CSV/JSON outputs,
-explicit provenance, and no workbook-derived estimates.
+explicit provenance, and no historical workbook calibration.
 
 ## Setup
 
@@ -31,7 +31,7 @@ live-here build --transport curl
 
 Every build is a clean normalized-data build. It recreates
 `data/interim/current/`, reuses verified immutable cache files in
-`data/raw/current/`, runs the eleven source gatherers in the fixed V1 order, then
+`data/raw/current/`, runs the twelve source gatherers in the fixed V1 order, then
 runs the ranking pipeline from `data/interim/current/config.json`.
 
 Successful builds replace the canonical generated output directory:
@@ -61,11 +61,13 @@ status.
 
 ## Missing values and presentation
 
-V1 ranks the full target county universe. Factor adapters preserve source
-missingness; the pipeline fills residual gaps with deterministic geographic
-inverse-distance estimates from two to five nearby source-backed counties.
-Inferred values are explicitly marked in `factors.csv` and `coverage.json` and
-are never reused as donors. Machine-readable outputs remain numeric.
+V1 ranks the full target county universe. Most factor adapters preserve source
+missingness; the specialty-grocery lower-bound factor explicitly assigns zero
+to counties absent from its screening workbook. Other residual gaps use
+deterministic geographic inverse-distance estimates from two to five nearby
+source-backed counties. Inferred values are explicitly marked in `factors.csv`
+and `coverage.json` and are never reused as donors. Machine-readable outputs
+remain numeric.
 
 `county_rankings.csv` is the human-facing presentation CSV. A trailing `*`
 marks a county result that uses one or more inferred factor values, and marks
@@ -92,6 +94,8 @@ the later GIS/web application.
 | `docs/methodology.md` | Factor contracts, ranking rules, and missingness behavior |
 | `docs/sources.md` | Current source list, vintages, methods, coverage limits |
 | `docs/roadmap.md` | Remaining V1 and V2 work |
+| `data/sources/` | Archived project-supplied source workbooks and guides |
 
 Raw downloads, interim normalized files, outputs, and local prototype material
-are generated or local state and are ignored by Git.
+are generated or local state and are ignored by Git. Archived files under
+`data/sources/` are stable project inputs.

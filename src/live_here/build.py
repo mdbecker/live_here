@@ -19,6 +19,7 @@ GATHER_SCRIPTS = [
     "gather_fema_data.py",
     "gather_housing_data.py",
     "gather_transit_data.py",
+    "gather_specialty_grocery_data.py",
 ]
 
 CANONICAL_OUTPUTS = {

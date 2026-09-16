@@ -8,12 +8,12 @@ from pathlib import Path
 
 from . import __version__
 from .catalog import FACTORS
-from .factors import aqi, snowfall, temperature, transit, walkability
+from .factors import aqi, snowfall, specialty_grocery, temperature, transit, walkability
 from .inference import infer_missing
 from .io import load_counties, sha256, write_csv
 from .ranking import average_ranks, runoff
 
-SUPPORTED = {"aqi", "walkability", "heat", "cold", "snowfall", "transit", "drought", "tradespeople", "groceries", "housing", "hazard_burden", "resilience"}
+SUPPORTED = {"aqi", "walkability", "heat", "cold", "snowfall", "transit", "drought", "tradespeople", "groceries", "specialty_groceries", "housing", "hazard_burden", "resilience"}
 FACTOR_FIELDS = ["fips", "factor", "value", "value_status", "is_inferred", "observation_period", "method",
                  "quality_note", "inference_donor_fips", "nearest_donor_km", "farthest_donor_km", "unit",
                  "source_ids", "geography_vintage"]
@@ -65,8 +65,8 @@ def read_config(path):
         local_path = (path.parent / entry["path"]).resolve()
         if "legacy" in local_path.parts or "research" in local_path.parts:
             raise ValueError("Historical research artifacts cannot be pipeline inputs")
-        if local_path.suffix.lower() not in {".csv", ".zip"}:
-            raise ValueError("Source files must be CSV or single-CSV ZIP")
+        if local_path.suffix.lower() not in {".csv", ".zip", ".xlsx"}:
+            raise ValueError("Source files must be CSV, single-CSV ZIP, or XLSX")
         if not local_path.is_file():
             raise ValueError(f"Missing source file: {local_path}")
         if sha256(local_path) != entry["sha256"]:
@@ -128,6 +128,10 @@ def run(config_path, output_path):
             result, audit = _normalized_factor(paths[0], counties)
             for row in result.values():
                 row["observation_period"] = row.get("observation_period") or inputs[0]["vintage"]
+        elif factor == "specialty_groceries":
+            if len(inputs) != 1:
+                raise ValueError("Specialty groceries requires one workbook source")
+            result, audit = specialty_grocery.calculate(paths, counties)
         elif factor in {"drought", "tradespeople", "groceries", "housing", "hazard_burden", "resilience"}:
             if len(inputs) != 1:
                 raise ValueError(f"{factor} requires one normalized county export")
@@ -146,19 +150,27 @@ def run(config_path, output_path):
     factor_rows = []
     for factor in factors:
         source_observations = results[factor]
-        source_codes = set(source_observations)
-        completed = infer_missing(counties, source_observations)
-        inferred_codes = set(counties) - source_codes
+        provided_codes = set(source_observations)
+        flagged_inferred_codes = {code for code, observation in source_observations.items()
+                                  if str(observation.get("is_inferred", "false")).casefold() == "true"}
+        inferred_codes = flagged_inferred_codes | (set(counties) - provided_codes)
+        source_codes = provided_codes - flagged_inferred_codes
+        if set(counties) - provided_codes:
+            completed = infer_missing(counties, source_observations)
+        else:
+            completed = {code: dict(observation) for code, observation in source_observations.items()}
         inferred_by_factor[factor] = inferred_codes
         source_backed_by_factor[factor] = source_codes
         factor_records[factor] = {}
         for code in counties:
             if code not in completed or not math.isfinite(float(completed[code]["value"])):
                 raise ValueError(f"{factor}: county {code} remains without a finite value after inference")
-            if code in source_codes:
+            if code in provided_codes:
                 observation = dict(completed[code])
-                observation.update({"is_inferred": "false", "inference_donor_fips": "",
-                                   "nearest_donor_km": "", "farthest_donor_km": ""})
+                observation.update({"is_inferred": "true" if code in inferred_codes else "false",
+                                   "inference_donor_fips": observation.get("inference_donor_fips", ""),
+                                   "nearest_donor_km": observation.get("nearest_donor_km", ""),
+                                   "farthest_donor_km": observation.get("farthest_donor_km", "")})
             else:
                 observation = dict(completed[code])
                 periods = sorted({str(completed[donor].get("observation_period", "")).strip()
@@ -217,7 +229,7 @@ def run(config_path, output_path):
             },
         },
         "adapter_audits": audits,
-        "interpretation": "All counties are ranked. Inferred values are deterministic geographic estimates, not direct observations or confidence intervals. Win rates describe tournaments, not measurement confidence.",
+        "interpretation": "All counties are ranked. Inferred values are deterministic geographic estimates, except specialty-grocery lower-bound zero fills, which are explicit absence-of-source values; neither is a confidence interval. Win rates describe tournaments, not measurement confidence.",
     }
     output = Path(output_path)
     if output.exists() and (not output.is_dir() or any(output.iterdir())):

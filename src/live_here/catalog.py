@@ -23,6 +23,7 @@ FACTORS = {
         Factor("walkability", "Population-weighted National Walkability Index", "index_1_20", True, "EPA NWI", "csv_adapter_validated_on_2021_release"),
         Factor("transit", "Transit access", "index_0_100", True, "EPA Access to Jobs and Workers via Transit", "csv_adapter_validated_on_EPA_Trans45_2013_release"),
         Factor("groceries", "Grocery availability with access adjustment", "stores/10k residents", True, "Census CBP + USDA Food Environment Atlas", "csv_adapter_validated_on_CBP_2023_USDA_FEA_2025"),
+        Factor("specialty_groceries", "Specialty grocery proxy / lower-bound stores", "stores", True, "Archived specialty-grocery screening workbook", "xlsx_adapter_validated_on_1020_municipality_screening"),
         Factor("tradespeople", "Specialty-trade employment with occupation adjustment", "jobs/1k residents", True, "Census CBP + BLS OEWS", "csv_adapter_validated_on_CBP_2023_OEWS_May_2025"),
         Factor("housing", "Three-bedroom ZHVI", "USD", False, "Zillow", "csv_adapter_validated_on_current_county_three_bedroom_ZHVI"),
         Factor("hazard_burden", "FEMA hazard burden", "index_0_100", False, "FEMA NRI", "csv_adapter_validated_on_FEMA_NRI_v1.20_2025"),

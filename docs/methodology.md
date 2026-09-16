@@ -32,13 +32,17 @@ weighted mean. No other unmatched FIPS is bridged.
 | `walkability` | Population-weighted EPA National Walkability Index | Higher | index |
 | `transit` | EPA transit-access component composite | Higher | index |
 | `groceries` | CBP grocery density adjusted by USDA access indicators | Higher | index |
+| `specialty_groceries` | Specialty grocery proxy / lower-bound store count | Higher | stores |
 | `tradespeople` | CBP specialty-trade density adjusted by OEWS occupation mix | Higher | index |
 | `housing` | Three-bedroom Zillow Home Value Index | Lower | dollars |
 | `hazard_burden` | FEMA NRI hazard burden composite | Lower | index |
 | `resilience` | FEMA-based resilience composite | Higher | index |
 
-No factor adapter may read workbook estimates, calibrate to old ranks, map
-values onto old workbook distributions, or silently fill missing values.
+No factor adapter may read historical workbook estimates, calibrate to old
+ranks, map values onto old workbook distributions, or silently fill missing
+values. The approved specialty-grocery exception reads the archived screening
+workbook directly: its `Proxy / Lower-Bound Stores` value is source-derived,
+and absent or blank counties are explicit lower-bound zeroes.
 Source-derived interpolation or proxy status must be visible in
 `value_status`, `method`, and `quality_note`; residual gaps are handled only by
 the documented pipeline-level geographic inference step.
@@ -66,9 +70,15 @@ EPA transit components at block-group level and averages by county where source
 coverage exists.
 
 Groceries starts with CBP grocery-establishment density and applies a bounded
-USDA access adjustment. Tradespeople starts with CBP NAICS 238 employment
-density and applies BLS OEWS occupation mix and industry share. Housing is the
-direct county three-bedroom ZHVI value for one selected month.
+USDA access adjustment. Specialty groceries uses the `County Density Ranking`
+sheet in the archived project source at
+`data/sources/specialty_grocery_density_1020_city_restricted_statewide_expansion.xlsx`.
+It reads `Proxy / Lower-Bound Stores`, joins by FIPS with county/state
+validation, and uses guarded same-state name matching only when FIPS is absent.
+Absent or blank counties receive zero and are not geographic estimates or
+donors. Tradespeople starts with CBP NAICS 238 employment density and applies
+BLS OEWS occupation mix and industry share. Housing is the direct county
+three-bedroom ZHVI value for one selected month.
 
 FEMA hazard burden combines expected annual loss, vulnerability, and hazard
 frequency percentile. FEMA resilience combines community resilience,

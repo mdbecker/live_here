@@ -18,13 +18,13 @@ class RealDataAcceptance(unittest.TestCase):
         self.assertTrue(path.is_file(), "Real-source configuration has not been gathered")
         config = json.loads(path.read_text())
         self.assertEqual(config["mode"], "research")
-        self.assertEqual(set(config["factors"]), {"aqi", "walkability", "heat", "cold", "snowfall", "tradespeople", "groceries", "hazard_burden", "resilience", "drought", "transit", "housing"})
+        self.assertEqual(set(config["factors"]), {"aqi", "walkability", "heat", "cold", "snowfall", "tradespeople", "groceries", "specialty_groceries", "hazard_burden", "resilience", "drought", "transit", "housing"})
         for source in config["sources"]:
             local = (path.parent / source["path"]).resolve()
             self.assertTrue(local.is_file())
             self.assertEqual(hashlib.sha256(local.read_bytes()).hexdigest(), source["sha256"])
             self.assertNotEqual(source["role"], "fixture")
-            self.assertTrue(source["url"].startswith("https://"))
+            self.assertTrue(source["url"].startswith(("https://", "project://")))
             if source["role"] == "raw_source":
                 self.assertTrue(source.get("raw_parent_sha256"))
         county_source = next(source for source in config["sources"] if source["id"] == "counties")
@@ -70,12 +70,16 @@ class RealDataAcceptance(unittest.TestCase):
             for row in rows:
                 if row["is_inferred"] == "true":
                     self.assertTrue(math.isfinite(float(row["value"])))
-                    self.assertEqual(row["value_status"], "inferred_geographic_idw")
-                    self.assertEqual(row["method"], "geographic_idw_k5_p2")
-                    donors = row["inference_donor_fips"].split(";")
-                    self.assertTrue(2 <= len(donors) <= 5)
-                    self.assertTrue(all(donor not in inferred_codes for donor in donors))
-                    self.assertTrue(row["nearest_donor_km"] and row["farthest_donor_km"])
+                    if factor == "specialty_groceries":
+                        self.assertEqual(row["value_status"], "inferred_zero")
+                        self.assertEqual(row["method"], "workbook_proxy_lower_bound_zero_fill")
+                    else:
+                        self.assertEqual(row["value_status"], "inferred_geographic_idw")
+                        self.assertEqual(row["method"], "geographic_idw_k5_p2")
+                        donors = row["inference_donor_fips"].split(";")
+                        self.assertTrue(2 <= len(donors) <= 5)
+                        self.assertTrue(all(donor not in inferred_codes for donor in donors))
+                        self.assertTrue(row["nearest_donor_km"] and row["farthest_donor_km"])
         presentation_by_fips = {row["fips"]: row for row in county_rankings}
         composite_fields = {"runoff_rank", "average_factor_rank", "average_based_rank", "mean_elimination_round", "wins", "win_rate"}
         for ranking in rankings:
@@ -93,6 +97,9 @@ class RealDataAcceptance(unittest.TestCase):
         self.assertEqual(sum(int(r["wins"]) for r in rankings), manifest["config"]["iterations"])
         self.assertTrue(all(len(r["fips"]) == 5 for r in rankings))
         self.assertIn("tradespeople", coverage["selected_factors"])
+        self.assertIn("specialty_groceries", coverage["selected_factors"])
+        self.assertEqual(coverage["per_factor"]["specialty_groceries"].get("derived_workbook_proxy"), 319)
+        self.assertEqual(coverage["per_factor"]["specialty_groceries"].get("inferred_zero"), 2901)
         self.assertGreater(coverage["per_factor"]["tradespeople"].get("derived_state_proxy", 0), 2000)
         self.assertGreater(coverage["per_factor"]["groceries"].get("derived_usda_access_adjusted", 0), 2000)
         self.assertGreater(coverage["per_factor"]["hazard_burden"].get("derived_source", 0), 3000)
